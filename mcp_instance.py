@@ -10,8 +10,8 @@ from dataclasses import dataclass
 import logging
 
 from mcp.server.fastmcp import FastMCP, Context
-from .odoo.client import OdooClient
-from .config import config
+from odoo.client import OdooClient
+from config import config
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -25,7 +25,6 @@ class AppContext:
 # Create FastMCP instance with enhanced instructions
 mcp = FastMCP(
     name="mcp-odoo",
-    version="1.0.0",
     instructions=(
         "MCP server for Odoo accounting integration. "
         "This provides access to accounting data from Odoo, "

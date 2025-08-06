@@ -12,11 +12,11 @@ import os
 from mcp.server.fastmcp import Context
 
 # Import the MCP instance defined in mcp_instance.py
-from .mcp_instance import mcp, AppContext
+from mcp_instance import mcp, AppContext
 
 # Import all resources to ensure they are registered
-from .resources import partners
-from .resources import accounting
+from resources import partners
+from resources import accounting
 
 # Configure logging
 logging.basicConfig(
@@ -106,7 +106,7 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         port: Port to bind to for SSE transport (overrides config)
     """
     # Import config here to avoid circular imports
-    from .config import config
+    from config import config
     
     # Override config with parameters if provided
     if host is not None:
@@ -144,4 +144,4 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         logger.info("Server shutdown requested. Cleaning up...")
     except Exception as e:
         logger.error(f"Server error: {str(e)}")
-        raise 
+        raise

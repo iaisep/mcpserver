@@ -11,8 +11,9 @@ import asyncio
 
 from mcp.server.fastmcp import Context
 
-from .odoo.client import OdooClient
-from .config import config
+from odoo.client import OdooClient
+
+from config import config
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -84,4 +85,4 @@ async def get_odoo_client_from_context(ctx: Context) -> OdooClient:
             password=odoo_config.get("password")
         )
         await client.connect()
-        return client 
+        return client

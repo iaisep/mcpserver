@@ -9,7 +9,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlparse
 
-from ..config import config
+from config import config
 from .exceptions import OdooConnectionError, OdooAuthenticationError
 
 # Configure logging
@@ -339,4 +339,4 @@ class OdooClient:
                 'name', 'account_id', 'partner_id', 'debit', 'credit', 
                 'balance', 'matching_number', 'full_reconcile_id'
             ]
-        ) 
+        )

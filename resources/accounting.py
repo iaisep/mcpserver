@@ -8,8 +8,8 @@ from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 from mcp.server.fastmcp import Context
-from ..mcp_instance import mcp
-from ..context_handler import get_odoo_client_from_context
+from mcp_instance import mcp
+from context_handler import get_odoo_client_from_context
 
 # Models for request/response types
 class InvoiceFilter(BaseModel):
@@ -878,4 +878,4 @@ async def trace_account_flow(ctx: Context, from_account: str, to_account: str, d
         return result
     except Exception as e:
         await ctx.error(f"Error analyzing accounting flow: {str(e)}")
-        return {"error": str(e)} 
+        return {"error": str(e)}

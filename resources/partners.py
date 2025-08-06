@@ -5,8 +5,8 @@ from typing import Optional
 from pydantic import AnyUrl
 
 from mcp.server.fastmcp import Context
-from ..mcp_instance import AppContext, mcp
-from ..context_handler import get_odoo_client_from_context
+from mcp_instance import AppContext, mcp
+from context_handler import get_odoo_client_from_context
 
 # Helper functions to format partner data in markdown
 def format_partner_to_markdown(partner):
@@ -153,4 +153,4 @@ async def partner_detail(partner_id: int) -> str:
 
 # Add logger import
 import logging
-logger = logging.getLogger(__name__) 
+logger = logging.getLogger(__name__)

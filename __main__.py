@@ -5,8 +5,8 @@ import argparse
 import sys
 from typing import Literal
 
-from .config import config
-from .server import run_server
+from config import config
+from server import run_server
 
 
 def main():
