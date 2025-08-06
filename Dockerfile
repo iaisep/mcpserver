@@ -19,7 +19,7 @@ RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 COPY . .
 
 # Expone el puerto por defecto para SSE (ajusta si es necesario)
-EXPOSE 8080
+EXPOSE 8000
 
 # Comando de inicio (ajusta el path si tu entrypoint es diferente)
-CMD ["python", "__main__.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "__main__.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
