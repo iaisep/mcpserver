@@ -22,4 +22,4 @@ COPY . .
 EXPOSE 8080
 
 # Comando de inicio (ajusta el path si tu entrypoint es diferente)
-CMD ["python", "__main__.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "__main__.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080"]
