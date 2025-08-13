@@ -205,45 +205,44 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         
         # Run the server with the configured transport
         if transport == "sse":
-            logger.info(f"🔌 Using modified uvicorn binding approach")
+            logger.info(f"🔌 Using stable FastMCP SSE with environment override")
             logger.info(f"📡 Will start on {config.server.host}:{config.server.port}")
-            logger.info("✨ Patching uvicorn for host override...")
+            logger.info("✨ Setting environment variables for stable operation...")
             logger.info("=" * 60)
             
-            # Try to patch uvicorn's default host behavior before FastMCP uses it
+            # Set multiple environment variable approaches for maximum compatibility
+            import os
+            
+            # Clear any problematic existing variables
+            env_vars_to_clear = ['UVICORN_HOST', 'UVICORN_PORT', 'HOST', 'PORT']
+            for var in env_vars_to_clear:
+                if var in os.environ:
+                    del os.environ[var]
+            
+            # Set our environment variables with multiple naming conventions
+            os.environ['UVICORN_HOST'] = config.server.host
+            os.environ['UVICORN_PORT'] = str(config.server.port)
+            os.environ['HOST'] = config.server.host
+            os.environ['PORT'] = str(config.server.port)
+            os.environ['MCP_HOST'] = config.server.host
+            os.environ['MCP_PORT'] = str(config.server.port)
+            
+            logger.info(f"✅ Environment set: HOST={os.environ.get('HOST')}, PORT={os.environ.get('PORT')}")
+            logger.info(f"✅ Environment set: UVICORN_HOST={os.environ.get('UVICORN_HOST')}, UVICORN_PORT={os.environ.get('UVICORN_PORT')}")
+            
+            # Use stable FastMCP run without any monkey patching
+            logger.info("🚀 Starting FastMCP with environment configuration...")
+            logger.info("⚡ No monkey patches - stable operation mode")
+            
             try:
-                import uvicorn
-                import uvicorn.config
-                
-                # Store original Config.__init__ method
-                original_config_init = uvicorn.config.Config.__init__
-                
-                def patched_config_init(self, app, **kwargs):
-                    # Force our host and port if not explicitly provided
-                    if 'host' not in kwargs or kwargs['host'] == '127.0.0.1':
-                        kwargs['host'] = config.server.host
-                        logger.info(f"🔧 Patched uvicorn host to: {kwargs['host']}")
-                    if 'port' not in kwargs:
-                        kwargs['port'] = config.server.port
-                        logger.info(f"🔧 Patched uvicorn port to: {kwargs['port']}")
-                    
-                    # Call original init with our modified kwargs
-                    return original_config_init(self, app, **kwargs)
-                
-                # Apply the patch
-                uvicorn.config.Config.__init__ = patched_config_init
-                logger.info("✅ Uvicorn Config patched successfully")
-                
-                # Now run FastMCP - it should use our patched uvicorn
-                logger.info("🚀 Running FastMCP with patched uvicorn...")
+                # Try FastMCP with parameters first
+                logger.info("Attempting FastMCP with host/port parameters...")
+                mcp.run(transport="sse", host=config.server.host, port=config.server.port)
+            except TypeError:
+                # Fallback to environment variables only
+                logger.info("Parameters not supported, using environment variables...")
                 mcp.run(transport="sse")
                 
-            except Exception as e:
-                logger.error(f"Uvicorn patching failed: {e}")
-                logger.info("Falling back to FastMCP native run...")
-                
-                # Fallback to FastMCP native
-                mcp.run(transport="sse")
         else:
             # For stdio, no host/port needed
             mcp.run(transport=transport)
