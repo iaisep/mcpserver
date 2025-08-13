@@ -9,11 +9,11 @@ import sys
 
 # Force environment variables for container deployment
 os.environ["HOST"] = "0.0.0.0"
-os.environ["PORT"] = "8000"
+os.environ["PORT"] = "8082"
 os.environ["UVICORN_HOST"] = "0.0.0.0"
-os.environ["UVICORN_PORT"] = "8000"
+os.environ["UVICORN_PORT"] = "8082"
 os.environ["MCP_HOST"] = "0.0.0.0"
-os.environ["MCP_PORT"] = "8000"
+os.environ["MCP_PORT"] = "8082"
 
 # Configure logging early
 logging.basicConfig(level=logging.INFO)
@@ -41,12 +41,12 @@ def main():
         logger.info(f"Starting server on {config.server.host}:{config.server.port}")
         logger.info(f"Odoo URL: {config.odoo.url}")
         logger.info("SSE endpoints will be available at:")
-        logger.info(f"  - Health: http://0.0.0.0:8000/health")
-        logger.info(f"  - SSE: http://0.0.0.0:8000/sse")
-        logger.info(f"  - Messages: http://0.0.0.0:8000/messages")
+        logger.info(f"  - Health: http://0.0.0.0:8082/health")
+        logger.info(f"  - SSE: http://0.0.0.0:8082/sse")
+        logger.info(f"  - Messages: http://0.0.0.0:8082/messages")
         
         # Run with forced parameters
-        run_server(transport="sse", host="0.0.0.0", port=8000)
+        run_server(transport="sse", host="0.0.0.0", port=8082)
         
     except Exception as e:
         logger.error(f"Server startup failed: {e}")

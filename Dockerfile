@@ -18,8 +18,8 @@ RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 # Copia el resto del código fuente
 COPY . .
 
-# Expone el puerto por defecto para SSE (ajusta si es necesario)
-EXPOSE 8000
+# Expone el puerto 8082 para evitar conflictos
+EXPOSE 8082
 
 # Comando de inicio - volver al servidor que sabemos que funciona
 CMD ["python", "docker_server.py"]

@@ -50,11 +50,11 @@ class OdooConfig(BaseModel):
 class ServerConfig(BaseModel):
     """MCP server configuration."""
     host: str = Field(default_factory=lambda: os.environ.get("HOST", "0.0.0.0"))
-    port: int = Field(default_factory=lambda: int(os.environ.get("PORT", "8000")))
+    port: int = Field(default_factory=lambda: int(os.environ.get("PORT", "8082")))
     debug: bool = Field(default_factory=lambda: os.environ.get("DEBUG", "false").lower() == "true")
     log_level: str = Field(default_factory=lambda: os.environ.get("LOG_LEVEL", "INFO"))
     request_timeout: int = Field(default_factory=lambda: int(os.environ.get("REQUEST_TIMEOUT", "60")))
-    server_url: str = Field(default_factory=lambda: os.environ.get("MCP_SERVER_URL", "http://localhost:8000"))
+    server_url: str = Field(default_factory=lambda: os.environ.get("MCP_SERVER_URL", "http://localhost:8082"))
 
 
 class Config:

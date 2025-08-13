@@ -17,7 +17,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 # Force environment variables for container deployment
 os.environ["HOST"] = "0.0.0.0" 
-os.environ["PORT"] = "8000"
+os.environ["PORT"] = "8082"
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
