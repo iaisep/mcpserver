@@ -2,7 +2,39 @@
 Main MCP Server implementation for Odoo integration.
 
 This module provides the MCP server implementation that exposes
-Odoo data to AI agents via the Model Context Protocol.
+Odoo data to AI agents via the Mode        # Run the server with the configured transport
+        if transport == "sse":
+            logger.info(f"🔌 Using FastMCP native SSE server")
+            logger.info(f"📡 Will start on {config.server.host}:{config.server.port}")
+            logger.info("✨ Starting native FastMCP SSE transport...")
+            logger.info("=" * 60)
+            
+            # Force uvicorn to bind to the correct host/port by using direct uvicorn call
+            # FastMCP's mcp.run() seems to ignore environment variables in some versions
+            try:
+                import uvicorn
+                
+                # Get the ASGI app from FastMCP
+                app = mcp.sse_app()
+                logger.info("✅ FastMCP SSE app created successfully")
+                
+                # Force uvicorn to use our specified host and port
+                logger.info(f"🚀 Forcing uvicorn to bind to {config.server.host}:{config.server.port}")
+                uvicorn.run(
+                    app, 
+                    host=config.server.host, 
+                    port=config.server.port, 
+                    log_level="info"
+                )
+            except Exception as e:
+                logger.error(f"Direct uvicorn approach failed: {e}")
+                logger.info("Falling back to FastMCP native run...")
+                
+                # Fallback to FastMCP native with environment variables
+                mcp.run(transport="sse")
+        else:
+            # For stdio, no host/port needed
+            mcp.run(transport=transport)otocol.
 """
 import logging
 import asyncio
