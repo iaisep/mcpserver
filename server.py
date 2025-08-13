@@ -154,14 +154,28 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
             except TypeError as e:
                 # Second try: if direct parameters don't work, try with environment variables
                 logger.info(f"Direct host/port parameters not supported ({e}), trying environment variables approach")
-                mcp.run(transport=transport)
+                try:
+                    mcp.run(transport=transport)
+                except Exception as env_e:
+                    # Third try: if FastMCP doesn't respect environment variables properly, force uvicorn directly
+                    logger.warning(f"Environment variables approach failed ({env_e}), forcing direct uvicorn configuration")
+                    try:
+                        import uvicorn
+                        # Create ASGI app from FastMCP instance
+                        app = mcp.create_app()
+                        logger.info(f"Starting uvicorn directly on {config.server.host}:{config.server.port}")
+                        uvicorn.run(app, host=config.server.host, port=config.server.port)
+                    except ImportError:
+                        logger.error("Uvicorn not available. Falling back to default FastMCP behavior.")
+                        mcp.run(transport=transport)
             except Exception as e:
-                # Third try: if FastMCP doesn't support host/port configuration, use uvicorn directly
+                # Final fallback: if everything else fails, use uvicorn directly
                 logger.warning(f"FastMCP run failed ({e}), attempting direct uvicorn configuration")
                 try:
                     import uvicorn
                     # Create ASGI app from FastMCP instance
                     app = mcp.create_app()
+                    logger.info(f"Starting uvicorn directly on {config.server.host}:{config.server.port}")
                     uvicorn.run(app, host=config.server.host, port=config.server.port)
                 except ImportError:
                     logger.error("Uvicorn not available. Falling back to default FastMCP behavior.")
