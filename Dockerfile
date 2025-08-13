@@ -8,10 +8,7 @@ RUN pip install --no-cache-dir -U pip && if [ -f requirements.txt ]; then pip in
 
 COPY . .
 
-# Fuerza host/puerto para Uvicorn aunque FastMCP lo lance internamente
-ENV UVICORN_CMD_ARGS="--host 0.0.0.0 --port 8000"
-
 EXPOSE 8000
-
-# Mantén tu arranque actual
-CMD ["python", "__main__.py", "--transport", "sse", "--port", "8000"]
+# Llamada explícita a fastmcp con el host correcto
+ENTRYPOINT ["python", "-m", "fastmcp", "serve"]
+CMD ["--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
