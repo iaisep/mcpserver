@@ -1,8 +1,5 @@
-# FastMCP
+# FastMCP (includes Starlette and Uvicorn)
 fastmcp
-
-# Web framework for health checks
-fastapi
 
 # Config management
 python-dotenv

@@ -152,33 +152,35 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                 # Force direct uvicorn configuration for reliable host binding in containers
                 logger.info("Using direct uvicorn configuration for reliable host binding")
                 import uvicorn
-                from fastapi import FastAPI
-                from fastapi.responses import JSONResponse
+                from starlette.applications import Starlette
+                from starlette.responses import JSONResponse
+                from starlette.routing import Route, Mount
                 
                 # Get ASGI app from FastMCP instance
                 mcp_app = mcp.sse_app()
                 
-                # Create a FastAPI wrapper to add health check endpoint
-                app = FastAPI()
+                # Create health check endpoints
+                async def root(request):
+                    return JSONResponse({"status": "ok", "service": "mcp-odoo", "version": "1.0"})
                 
-                # Add health check endpoint for Traefik
-                @app.get("/")
-                async def root():
-                    return JSONResponse({"status": "ok", "service": "mcp-odoo"})
-                
-                @app.get("/health")
-                async def health_check():
+                async def health_check(request):
                     return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
                 
-                # Mount MCP app at /mcp
-                app.mount("/mcp", mcp_app)
+                # Create main app with health endpoints and MCP mount
+                routes = [
+                    Route("/", root),
+                    Route("/health", health_check),
+                    Mount("/mcp", mcp_app),
+                ]
+                
+                app = Starlette(routes=routes)
                 
                 logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
                 logger.info("Health check available at: / and /health")
                 logger.info("MCP endpoints available at: /mcp/sse and /mcp/messages")
                 uvicorn.run(app, host=config.server.host, port=config.server.port)
-            except ImportError:
-                logger.error("Uvicorn not available. Trying FastMCP fallback approaches")
+            except ImportError as e:
+                logger.error(f"Starlette/Uvicorn not available ({e}). Trying FastMCP fallback approaches")
                 try:
                     # Fallback: pass host and port directly (newer versions of FastMCP)
                     mcp.run(transport=transport, host=config.server.host, port=config.server.port)
