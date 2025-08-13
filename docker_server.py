@@ -9,11 +9,11 @@ import time
 
 # Force environment variables for container deployment
 os.environ["HOST"] = "0.0.0.0"
-os.environ["PORT"] = "8082"
+os.environ["PORT"] = "8083"
 os.environ["UVICORN_HOST"] = "0.0.0.0"
-os.environ["UVICORN_PORT"] = "8082"
+os.environ["UVICORN_PORT"] = "8083"
 os.environ["MCP_HOST"] = "0.0.0.0"
-os.environ["MCP_PORT"] = "8082"
+os.environ["MCP_PORT"] = "8083"
 
 # Configure logging early
 logging.basicConfig(
@@ -50,7 +50,7 @@ def run_with_retry_logic(max_retries=3, retry_delay=10):
             uvicorn_config = uvicorn.Config(
                 app,
                 host="0.0.0.0",
-                port=8082,
+                port=8083,
                 log_level="info",
                 access_log=True,
                 # Improved settings for container stability
@@ -64,9 +64,9 @@ def run_with_retry_logic(max_retries=3, retry_delay=10):
             server = uvicorn.Server(uvicorn_config)
             logger.info("🌐 Starting uvicorn server...")
             logger.info("📡 Endpoints available:")
-            logger.info("   - Health: http://0.0.0.0:8082/health")
-            logger.info("   - SSE: http://0.0.0.0:8082/sse")
-            logger.info("   - Messages: http://0.0.0.0:8082/messages")
+            logger.info("   - Health: http://0.0.0.0:8083/health")
+            logger.info("   - SSE: http://0.0.0.0:8083/sse")
+            logger.info("   - Messages: http://0.0.0.0:8083/messages")
             
             # This will block until server stops
             server.run()

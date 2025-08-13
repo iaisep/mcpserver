@@ -36,7 +36,7 @@ def setup_signal_handlers():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
-def run_server(transport: str = "sse", host: str = "0.0.0.0", port: int = 8082):
+def run_server(transport: str = "sse", host: str = "0.0.0.0", port: int = 8083):
     """Run the MCP server with improved error handling"""
     
     logger.info("🚀 Starting improved MCP-Odoo server...")
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         logger.info(f"   {key}={value}")
     
     try:
-        run_server(transport="sse", host="0.0.0.0", port=8082)
+        run_server(transport="sse", host="0.0.0.0", port=8083)
     except Exception as e:
         logger.error(f"💥 Fatal error: {str(e)}")
         sys.exit(1)

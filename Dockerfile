@@ -40,10 +40,10 @@ USER app
 
 # Add comprehensive health check
 HEALTHCHECK --interval=20s --timeout=10s --start-period=30s --retries=5 \
-    CMD curl -f http://localhost:8082/health || exit 1
+    CMD curl -f http://localhost:8083/health || exit 1
 
-# Expone el puerto 8082 para evitar conflictos
-EXPOSE 8082
+# Expone el puerto 8083 para evitar conflictos
+EXPOSE 8083
 
 # Use the robust Docker server with retry logic
 CMD ["python", "docker_server.py"]
