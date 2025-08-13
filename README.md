@@ -6,16 +6,23 @@ Model Context Protocol server for Odoo integration, allowing AI agents to access
 
 MCP-Odoo provides a bridge between Odoo ERP systems and AI agents using the Model Context Protocol (MCP). This enables AI systems to:
 
-- Access partner information
-- View and analyze accounting data including invoices and payments
-- Perform reconciliation of financial records
-- Query vendor bills and customer invoices
+- **CRM Management**: Complete lead/opportunity lifecycle management with Universidad ISEP customizations
+- **Partner Management**: Comprehensive contact and customer/supplier management  
+- **Accounting Analysis**: View and analyze financial data including invoices and payments
+- **Academic Programs**: University-specific program tracking and enrollment management
+- **Data Integration**: Support for Mautic CRM and Google Analytics integration
+- **Multi-team Support**: Sales team and workflow management
 
 ## Features
 
 - 🔌 Easy integration with Odoo instances
 - 🤖 Standard MCP interface for AI agent compatibility
-- 📊 Rich accounting data access
+- 📊 Rich accounting and CRM data access
+- 🎓 University-specific academic program management (ISEP)
+- 👥 Complete partner/contact lifecycle management
+- 📈 CRM analytics and dashboard statistics
+- 🔄 Lead to opportunity conversion workflows
+- 🏢 Multi-team sales management
 - 🔒 Secure authentication with Odoo
 
 ## Installation
@@ -61,8 +68,37 @@ Comprehensive documentation is available in the `docs/` directory:
 - [Documentation Home](docs/index.md) - Start here for an overview of all documentation
 - [Implementation Guide](docs/implementation_guide.md) - Detailed architecture and implementation details
 - [Accounting Functionality](docs/accounting_guide.md) - In-depth guide to accounting features
+- [CRM Functionality](docs/crm_guide.md) - Complete guide to CRM and partner management
 - [Troubleshooting](docs/troubleshooting.md) - Solutions for common issues
 - [Usage Examples](docs/examples/basic_usage.md) - Practical examples to get started
+
+## Available Tools
+
+### CRM Management
+- `list_leads` - List and filter leads/opportunities with Universidad ISEP custom fields
+- `get_lead_details` - Get comprehensive lead information
+- `create_lead` - Create new leads with academic program tracking
+- `update_lead` - Update lead information and progress
+- `convert_lead_to_opportunity` - Convert leads to opportunities
+- `get_crm_dashboard_stats` - Get performance metrics and analytics
+
+### Partner Management  
+- `list_partners` - List and filter contacts/companies
+- `get_partner_details` - Get detailed partner information
+- `create_partner` - Create new partners/contacts
+- `update_partner` - Update partner information
+
+### Academic Programs (ISEP Specific)
+- `get_academic_programs` - List available academic programs
+- `list_crm_stages` - Get CRM workflow stages
+- `list_crm_teams` - Get sales teams
+- `get_lead_activities` - Get lead-related activities
+
+### Accounting (Existing)
+- `list_vendor_bills` - List supplier invoices
+- `list_customer_invoices` - List customer invoices  
+- `list_payments` - List payments with filtering
+- `reconcile_invoices_and_payments` - Generate reconciliation reports
 
 ## Development
 

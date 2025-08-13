@@ -94,4 +94,6 @@ class Config:
 
 
 # Global configuration instance
-config = Config() 
+config = Config()
+
+logger.info(f"Launching MCP on host: {config.server.host}, port: {config.server.port}")
