@@ -168,56 +168,13 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         
         # Run the server with the configured transport
         if transport == "sse":
-            # For SSE transport, force uvicorn direct configuration to ensure proper host binding
-            logger.info(f"🔌 Starting SSE server on {config.server.host}:{config.server.port}")
+            logger.info(f"🔌 Using FastMCP native SSE server")
+            logger.info(f"📡 Will start on {config.server.host}:{config.server.port}")
+            logger.info("� Starting native FastMCP SSE transport...")
+            logger.info("=" * 60)
             
-            try:
-                # Force direct uvicorn configuration for reliable host binding in containers
-                logger.info("⚡ Using direct uvicorn for reliable host binding")
-                import uvicorn
-                
-                # Get ASGI app from FastMCP instance
-                app = mcp.sse_app()
-                logger.info("✅ MCP SSE app created successfully")
-                
-                # Try to add health check route to existing MCP app
-                try:
-                    from starlette.responses import JSONResponse
-                    from starlette.routing import Route
-                    
-                    # Create a simple health check function
-                    async def health_check(request):
-                        return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
-                    
-                    # Add health route to the existing MCP app if possible
-                    if hasattr(app, 'router') and hasattr(app.router, 'routes'):
-                        health_route = Route("/health", health_check)
-                        app.router.routes.append(health_route)
-                        logger.info("✅ Health check route added")
-                    else:
-                        logger.info("ℹ️  Health route not available")
-                        
-                except Exception as e:
-                    logger.warning(f"⚠️  Health endpoint setup failed: {e}")
-                
-                logger.info(f"🚀 Starting server on {config.server.host}:{config.server.port}")
-                logger.info("📡 Endpoints: /sse, /messages, /health")
-                logger.info("🟢 Server ready - waiting for connections")
-                logger.info("=" * 60)
-                uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
-                
-            except Exception as e:
-                logger.error(f"Uvicorn/SSE failed ({e}). Trying FastMCP fallback approaches")
-                    
-            except Exception as main_error:
-                logger.error(f"All modern transports failed ({main_error}). Trying FastMCP fallback approaches")
-                try:
-                    # Fallback: pass host and port directly (newer versions of FastMCP)
-                    mcp.run(transport=transport, host=config.server.host, port=config.server.port)
-                except TypeError as e:
-                    # Final fallback: if direct parameters don't work, try with environment variables
-                    logger.info(f"Direct host/port parameters not supported ({e}), trying environment variables approach")
-                    mcp.run(transport=transport)
+            # Use FastMCP's built-in run method with no custom modifications
+            mcp.run(transport="sse")
         else:
             # For stdio, no host/port needed
             mcp.run(transport=transport)
