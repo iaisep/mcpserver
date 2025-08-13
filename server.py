@@ -152,8 +152,8 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                 # Force direct uvicorn configuration for reliable host binding in containers
                 logger.info("Using direct uvicorn configuration for reliable host binding")
                 import uvicorn
-                # Create ASGI app from FastMCP instance
-                app = mcp.create_app()
+                # Get ASGI app from FastMCP instance
+                app = mcp.sse_app()
                 logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
                 uvicorn.run(app, host=config.server.host, port=config.server.port)
             except ImportError:
