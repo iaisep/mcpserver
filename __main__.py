@@ -27,7 +27,7 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        help="Port to bind to for SSE transport (default: from config or 8080)"
+        help="Port to bind to for SSE transport (default: from config or 8000)"
     )
     args = parser.parse_args()
     

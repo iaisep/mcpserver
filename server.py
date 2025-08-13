@@ -126,9 +126,14 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         os.environ["MCP_HOST"] = config.server.host
         os.environ["MCP_PORT"] = str(config.server.port)
         
+        # Also try common Uvicorn environment variables
+        os.environ["UVICORN_HOST"] = config.server.host
+        os.environ["UVICORN_PORT"] = str(config.server.port)
+        
         # Log startup information
         logger.info(f"Starting MCP Odoo server on {config.server.host}:{config.server.port}")
         logger.info(f"Connected to Odoo instance: {config.odoo.url}")
+        logger.info(f"Environment variables set: MCP_HOST={os.environ.get('MCP_HOST')}, MCP_PORT={os.environ.get('MCP_PORT')}")
     else:
         logger.info(f"Starting MCP Odoo server with {transport} transport")
         logger.info(f"Connected to Odoo instance: {config.odoo.url}")
@@ -139,8 +144,31 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         logger.info(f"Using {transport} transport")
         
         # Run the server with the configured transport
-        # In 1.6.0, run() doesn't accept host/port directly
-        mcp.run(transport=transport)
+        if transport == "sse":
+            # For SSE transport, try multiple approaches to configure host/port
+            logger.info(f"Starting SSE server on {config.server.host}:{config.server.port}")
+            
+            try:
+                # First try: pass host and port directly (newer versions of FastMCP)
+                mcp.run(transport=transport, host=config.server.host, port=config.server.port)
+            except TypeError as e:
+                # Second try: if direct parameters don't work, try with environment variables
+                logger.info(f"Direct host/port parameters not supported ({e}), trying environment variables approach")
+                mcp.run(transport=transport)
+            except Exception as e:
+                # Third try: if FastMCP doesn't support host/port configuration, use uvicorn directly
+                logger.warning(f"FastMCP run failed ({e}), attempting direct uvicorn configuration")
+                try:
+                    import uvicorn
+                    # Create ASGI app from FastMCP instance
+                    app = mcp.create_app()
+                    uvicorn.run(app, host=config.server.host, port=config.server.port)
+                except ImportError:
+                    logger.error("Uvicorn not available. Falling back to default FastMCP behavior.")
+                    mcp.run(transport=transport)
+        else:
+            # For stdio, no host/port needed
+            mcp.run(transport=transport)
     except KeyboardInterrupt:
         logger.info("Server shutdown requested. Cleaning up...")
     except Exception as e:
