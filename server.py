@@ -145,15 +145,28 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         
         # Run the server with the configured transport
         if transport == "sse":
-            # For SSE transport, force uvicorn direct configuration to ensure proper host binding
-            logger.info(f"Starting SSE server on {config.server.host}:{config.server.port}")
+            # For SSE transport, try HTTP Streamable first for better n8n compatibility
+            logger.info(f"Starting server on {config.server.host}:{config.server.port}")
             
             try:
-                # Force direct uvicorn configuration for reliable host binding in containers
-                logger.info("Using direct uvicorn configuration for reliable host binding")
+                # Try HTTP Streamable transport first (recommended by n8n)
+                logger.info("Attempting HTTP Streamable transport for better n8n compatibility")
                 import uvicorn
                 
+                # Get HTTP Streamable app from FastMCP instance
+                app = mcp.streamable_http_app()
+                logger.info("Successfully created MCP HTTP Streamable app")
+                
+                logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
+                logger.info("MCP HTTP Streamable endpoint available at /stream")
+                uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
+                
+            except Exception as streamable_error:
+                logger.warning(f"HTTP Streamable failed ({streamable_error}), falling back to SSE")
+                
                 try:
+                    # Force direct uvicorn configuration for reliable host binding in containers
+                    logger.info("Using direct uvicorn configuration for reliable host binding")
                     import uvicorn
                     
                     # Get ASGI app from FastMCP instance
@@ -184,14 +197,15 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                     app = mcp_app
                     logger.info("Using MCP SSE app directly")
                     
+                    logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
+                    logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
+                    uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
+                    
                 except ImportError as e:
                     logger.error(f"Cannot create SSE app ({e}), falling back to FastMCP run")
-                
-                logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
-                logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
-                uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
-            except Exception as e:
-                logger.error(f"Uvicorn/Starlette failed ({e}). Trying FastMCP fallback approaches")
+                    
+            except Exception as main_error:
+                logger.error(f"All modern transports failed ({main_error}). Trying FastMCP fallback approaches")
                 try:
                     # Fallback: pass host and port directly (newer versions of FastMCP)
                     mcp.run(transport=transport, host=config.server.host, port=config.server.port)
