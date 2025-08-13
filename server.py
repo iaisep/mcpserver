@@ -154,41 +154,44 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                 import uvicorn
                 
                 try:
-                    from starlette.applications import Starlette
-                    from starlette.responses import JSONResponse
-                    from starlette.routing import Route, Mount
+                    import uvicorn
                     
                     # Get ASGI app from FastMCP instance
                     mcp_app = mcp.sse_app()
                     logger.info("Successfully created MCP SSE app")
                     
-                    # Create health check endpoints
-                    async def root(request):
-                        return JSONResponse({"status": "ok", "service": "mcp-odoo", "version": "1.0"})
+                    # Try to add health check route to existing MCP app
+                    try:
+                        from starlette.responses import JSONResponse
+                        from starlette.routing import Route
+                        
+                        # Create a simple health check function
+                        async def health_check(request):
+                            return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
+                        
+                        # Add health route to the existing MCP app if possible
+                        if hasattr(mcp_app, 'router') and hasattr(mcp_app.router, 'routes'):
+                            health_route = Route("/health", health_check)
+                            mcp_app.router.routes.append(health_route)
+                            logger.info("Added health check route to MCP app")
+                        else:
+                            logger.info("Cannot add health route, using MCP app as-is")
+                            
+                    except Exception as e:
+                        logger.warning(f"Could not add health endpoint ({e}), using MCP app as-is")
                     
-                    async def health_check(request):
-                        return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
+                    # Use the MCP app directly (with or without health endpoint)
+                    app = mcp_app
+                    logger.info("Using MCP SSE app directly")
                     
-                    # Create main app with health endpoints and direct SSE endpoints
-                    routes = [
-                        Route("/health", health_check),
-                        # Mount MCP app at root to preserve SSE functionality
-                        Mount("/", mcp_app),
-                    ]
-                    
-                    app = Starlette(routes=routes)
-                    logger.info("Successfully created Starlette app with MCP at root and health endpoint")
-                    
-                except ImportError as starlette_error:
-                    logger.warning(f"Starlette not available ({starlette_error}), using MCP app directly")
-                    app = mcp.sse_app()
+                except ImportError as e:
+                    logger.error(f"Cannot create SSE app ({e}), falling back to FastMCP run")
                 
                 logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
-                logger.info("Health check available at: /health")
-                logger.info("MCP endpoints available at: /sse and /messages")
+                logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
                 uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
-            except ImportError as e:
-                logger.error(f"Uvicorn not available ({e}). Trying FastMCP fallback approaches")
+            except Exception as e:
+                logger.error(f"Uvicorn/Starlette failed ({e}). Trying FastMCP fallback approaches")
                 try:
                     # Fallback: pass host and port directly (newer versions of FastMCP)
                     mcp.run(transport=transport, host=config.server.host, port=config.server.port)
