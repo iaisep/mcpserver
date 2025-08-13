@@ -4,30 +4,42 @@ Main MCP Server implementation for Odoo integration.
 This module provides the MCP server implementation that exposes
 Odoo data to AI agents via the Mode        # Run the server with the configured transport
         if transport == "sse":
-            logger.info(f"🔌 Using FastMCP native SSE server")
+            logger.info(f"🔌 Using direct uvicorn with FastMCP app")
             logger.info(f"📡 Will start on {config.server.host}:{config.server.port}")
-            logger.info("✨ Starting native FastMCP SSE transport...")
+            logger.info("✨ Creating FastMCP SSE app and configuring uvicorn...")
             logger.info("=" * 60)
             
-            # Force uvicorn to bind to the correct host/port by using direct uvicorn call
-            # FastMCP's mcp.run() seems to ignore environment variables in some versions
+            # Use direct uvicorn configuration to ensure proper host binding
             try:
                 import uvicorn
+                from uvicorn.config import Config as UvicornConfig
                 
                 # Get the ASGI app from FastMCP
                 app = mcp.sse_app()
                 logger.info("✅ FastMCP SSE app created successfully")
                 
-                # Force uvicorn to use our specified host and port
-                logger.info(f"🚀 Forcing uvicorn to bind to {config.server.host}:{config.server.port}")
-                uvicorn.run(
-                    app, 
-                    host=config.server.host, 
-                    port=config.server.port, 
-                    log_level="info"
+                # Create uvicorn config with explicit host/port settings
+                uvicorn_config = UvicornConfig(
+                    app,
+                    host=config.server.host,
+                    port=config.server.port,
+                    log_level="info",
+                    access_log=True
                 )
+                
+                # Log the configuration being used
+                logger.info(f"🔧 Uvicorn config: host={uvicorn_config.host}, port={uvicorn_config.port}")
+                
+                # Create and run the server
+                server = uvicorn.Server(uvicorn_config)
+                logger.info(f"🚀 Starting uvicorn server with explicit config")
+                
+                # This should force the correct binding
+                import asyncio
+                asyncio.run(server.serve())
+                
             except Exception as e:
-                logger.error(f"Direct uvicorn approach failed: {e}")
+                logger.error(f"Direct uvicorn configuration failed: {e}")
                 logger.info("Falling back to FastMCP native run...")
                 
                 # Fallback to FastMCP native with environment variables
