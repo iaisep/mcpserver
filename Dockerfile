@@ -21,5 +21,5 @@ COPY . .
 # Expone el puerto por defecto para SSE (ajusta si es necesario)
 EXPOSE 8000
 
-# Comando de inicio (ajusta el path si tu entrypoint es diferente)
-CMD ["python", "__main__.py", "--transport", "sse", "--host", "0.0.0.0", "--port", "8000"]
+# Comando de inicio - usar servidor simplificado para Docker
+CMD ["python", "docker_server.py"]
