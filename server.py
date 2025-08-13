@@ -145,64 +145,48 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         
         # Run the server with the configured transport
         if transport == "sse":
-            # For SSE transport, try HTTP Streamable first for better n8n compatibility
-            logger.info(f"Starting server on {config.server.host}:{config.server.port}")
+            # For SSE transport, force uvicorn direct configuration to ensure proper host binding
+            logger.info(f"Starting SSE server on {config.server.host}:{config.server.port}")
             
             try:
-                # Try HTTP Streamable transport first (recommended by n8n)
-                logger.info("Attempting HTTP Streamable transport for better n8n compatibility")
+                # Force direct uvicorn configuration for reliable host binding in containers
+                logger.info("Using direct uvicorn configuration for reliable host binding")
                 import uvicorn
                 
-                # Get HTTP Streamable app from FastMCP instance
-                app = mcp.streamable_http_app()
-                logger.info("Successfully created MCP HTTP Streamable app")
+                # Get ASGI app from FastMCP instance
+                mcp_app = mcp.sse_app()
+                logger.info("Successfully created MCP SSE app")
+                
+                # Try to add health check route to existing MCP app
+                try:
+                    from starlette.responses import JSONResponse
+                    from starlette.routing import Route
+                    
+                    # Create a simple health check function
+                    async def health_check(request):
+                        return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
+                    
+                    # Add health route to the existing MCP app if possible
+                    if hasattr(mcp_app, 'router') and hasattr(mcp_app.router, 'routes'):
+                        health_route = Route("/health", health_check)
+                        mcp_app.router.routes.append(health_route)
+                        logger.info("Added health check route to MCP app")
+                    else:
+                        logger.info("Cannot add health route, using MCP app as-is")
+                        
+                except Exception as e:
+                    logger.warning(f"Could not add health endpoint ({e}), using MCP app as-is")
+                
+                # Use the MCP app directly (with or without health endpoint)
+                app = mcp_app
+                logger.info("Using MCP SSE app directly")
                 
                 logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
-                logger.info("MCP HTTP Streamable endpoint available at /stream")
+                logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
                 uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
                 
-            except Exception as streamable_error:
-                logger.warning(f"HTTP Streamable failed ({streamable_error}), falling back to SSE")
-                
-                try:
-                    # Force direct uvicorn configuration for reliable host binding in containers
-                    logger.info("Using direct uvicorn configuration for reliable host binding")
-                    import uvicorn
-                    
-                    # Get ASGI app from FastMCP instance
-                    mcp_app = mcp.sse_app()
-                    logger.info("Successfully created MCP SSE app")
-                    
-                    # Try to add health check route to existing MCP app
-                    try:
-                        from starlette.responses import JSONResponse
-                        from starlette.routing import Route
-                        
-                        # Create a simple health check function
-                        async def health_check(request):
-                            return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
-                        
-                        # Add health route to the existing MCP app if possible
-                        if hasattr(mcp_app, 'router') and hasattr(mcp_app.router, 'routes'):
-                            health_route = Route("/health", health_check)
-                            mcp_app.router.routes.append(health_route)
-                            logger.info("Added health check route to MCP app")
-                        else:
-                            logger.info("Cannot add health route, using MCP app as-is")
-                            
-                    except Exception as e:
-                        logger.warning(f"Could not add health endpoint ({e}), using MCP app as-is")
-                    
-                    # Use the MCP app directly (with or without health endpoint)
-                    app = mcp_app
-                    logger.info("Using MCP SSE app directly")
-                    
-                    logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
-                    logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
-                    uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
-                    
-                except ImportError as e:
-                    logger.error(f"Cannot create SSE app ({e}), falling back to FastMCP run")
+            except Exception as e:
+                logger.error(f"Uvicorn/SSE failed ({e}). Trying FastMCP fallback approaches")
                     
             except Exception as main_error:
                 logger.error(f"All modern transports failed ({main_error}). Trying FastMCP fallback approaches")
