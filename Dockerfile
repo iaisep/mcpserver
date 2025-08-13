@@ -21,5 +21,5 @@ COPY . .
 # Expone el puerto por defecto para SSE (ajusta si es necesario)
 EXPOSE 8000
 
-# Comando de inicio - usar servidor MCP simple sin FastMCP SSE
-CMD ["python", "simple_mcp_server.py"]
+# Comando de inicio - volver al servidor que sabemos que funciona
+CMD ["python", "docker_server.py"]
