@@ -205,13 +205,45 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         
         # Run the server with the configured transport
         if transport == "sse":
-            logger.info(f"� Using FastMCP native SSE server")
+            logger.info(f"🔌 Using modified uvicorn binding approach")
             logger.info(f"📡 Will start on {config.server.host}:{config.server.port}")
-            logger.info("✨ Starting native FastMCP SSE transport...")
+            logger.info("✨ Patching uvicorn for host override...")
             logger.info("=" * 60)
             
-            # Use FastMCP's built-in run method with no custom modifications
-            mcp.run(transport="sse")
+            # Try to patch uvicorn's default host behavior before FastMCP uses it
+            try:
+                import uvicorn
+                import uvicorn.config
+                
+                # Store original Config.__init__ method
+                original_config_init = uvicorn.config.Config.__init__
+                
+                def patched_config_init(self, app, **kwargs):
+                    # Force our host and port if not explicitly provided
+                    if 'host' not in kwargs or kwargs['host'] == '127.0.0.1':
+                        kwargs['host'] = config.server.host
+                        logger.info(f"🔧 Patched uvicorn host to: {kwargs['host']}")
+                    if 'port' not in kwargs:
+                        kwargs['port'] = config.server.port
+                        logger.info(f"🔧 Patched uvicorn port to: {kwargs['port']}")
+                    
+                    # Call original init with our modified kwargs
+                    return original_config_init(self, app, **kwargs)
+                
+                # Apply the patch
+                uvicorn.config.Config.__init__ = patched_config_init
+                logger.info("✅ Uvicorn Config patched successfully")
+                
+                # Now run FastMCP - it should use our patched uvicorn
+                logger.info("🚀 Running FastMCP with patched uvicorn...")
+                mcp.run(transport="sse")
+                
+            except Exception as e:
+                logger.error(f"Uvicorn patching failed: {e}")
+                logger.info("Falling back to FastMCP native run...")
+                
+                # Fallback to FastMCP native
+                mcp.run(transport="sse")
         else:
             # For stdio, no host/port needed
             mcp.run(transport=transport)
