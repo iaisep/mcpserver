@@ -118,11 +118,24 @@ def create_app(transport: str = "sse"):
             from starlette.routing import Route
             
             async def health_check(request):
+                try:
+                    # Try to get tools count safely
+                    tools_count = 0
+                    if hasattr(mcp, '_tools'):
+                        tools_count = len(mcp._tools)
+                    elif hasattr(mcp, 'tools'):
+                        tools_count = len(mcp.tools)
+                    else:
+                        # Fallback - just indicate tools are loaded
+                        tools_count = "available"
+                except:
+                    tools_count = "unknown"
+                
                 return JSONResponse({
                     "status": "healthy", 
                     "service": "mcp-odoo",
                     "transport": transport,
-                    "tools_count": len(mcp._tools)
+                    "tools_count": tools_count
                 })
             
             # Add health route if possible
