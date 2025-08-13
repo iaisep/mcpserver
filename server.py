@@ -8,7 +8,6 @@ import logging
 import asyncio
 from typing import Literal, Optional
 import os
-from datetime import datetime
 
 from mcp.server.fastmcp import Context
 
@@ -26,6 +25,69 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Configure detailed logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Add request logging middleware
+class RequestLoggingMiddleware:
+    """Middleware to log all incoming requests"""
+    
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            start_time = time.time()
+            method = scope.get("method", "UNKNOWN")
+            path = scope.get("path", "/")
+            headers = dict(scope.get("headers", []))
+            
+            # Log incoming request
+            logger.info(f"🔵 INCOMING REQUEST: {method} {path}")
+            logger.info(f"   Headers: {dict((k.decode(), v.decode()) for k, v in headers.items() if k.decode().lower() in ['content-type', 'accept', 'user-agent', 'authorization'])}")
+            
+            # Process request
+            async def send_wrapper(message):
+                if message["type"] == "http.response.start":
+                    status_code = message["status"]
+                    response_time = (time.time() - start_time) * 1000
+                    logger.info(f"🔴 RESPONSE: {status_code} for {method} {path} - {response_time:.2f}ms")
+                await send(message)
+            
+            await self.app(scope, receive, send_wrapper)
+        else:
+            await self.app(scope, receive, send)
+
+# Logging decorator for MCP tools
+def log_mcp_tool(func):
+    """Decorator to log MCP tool executions"""
+    def wrapper(*args, **kwargs):
+        tool_name = func.__name__
+        logger.info(f"🔧 EXECUTING MCP TOOL: {tool_name}")
+        logger.info(f"   Arguments: {kwargs}")
+        
+        start_time = time.time()
+        try:
+            result = func(*args, **kwargs)
+            execution_time = (time.time() - start_time) * 1000
+            logger.info(f"✅ TOOL SUCCESS: {tool_name} completed in {execution_time:.2f}ms")
+            return result
+        except Exception as e:
+            execution_time = (time.time() - start_time) * 1000
+            logger.error(f"❌ TOOL ERROR: {tool_name} failed in {execution_time:.2f}ms - {str(e)}")
+            raise
+    return wrapper
+
+# Apply logging decorator to key MCP tools
+original_odoo_version = None
+if hasattr(mcp, '_tools') and 'odoo_version' in mcp._tools:
+    original_odoo_version = mcp._tools['odoo_version']
+    mcp._tools['odoo_version'] = log_mcp_tool(original_odoo_version)
 
 # Configure logging
 logging.basicConfig(
@@ -146,25 +208,10 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         logger.info(f"Starting MCP Odoo server with {transport} transport")
         logger.info(f"Connected to Odoo instance: {config.odoo.url}")
     
-    # Enhanced startup logging
-    logger.info("=" * 60)
-    logger.info("🚀 STARTING MCP-ODOO SERVER")
-    logger.info(f"📊 Server: {config.server.host}:{config.server.port}")
-    logger.info(f"🌐 Odoo: {config.odoo.url}")
-    logger.info(f"💾 Database: {config.odoo.database}")
-    
-    # Log available MCP tools
-    if hasattr(mcp, '_tools'):
-        logger.info(f"🔧 Available tools: {len(mcp._tools)}")
-        for tool_name in sorted(mcp._tools.keys()):
-            logger.info(f"   - {tool_name}")
-    
-    logger.info("=" * 60)
-    
     try:
         # Log initialization info
-        logger.info("🔄 Starting MCP server with Odoo integration")
-        logger.info(f"🚦 Transport: {transport}")
+        logger.info("Starting MCP server with Odoo integration")
+        logger.info(f"Using {transport} transport")
         
         # Run the server with the configured transport
         if transport == "sse":
@@ -173,37 +220,40 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
             
             try:
                 # Force direct uvicorn configuration for reliable host binding in containers
-                logger.info("⚡ Using direct uvicorn for reliable host binding")
+                logger.info("Using direct uvicorn configuration for reliable host binding")
                 import uvicorn
                 
                 # Get ASGI app from FastMCP instance
-                app = mcp.sse_app()
-                logger.info("✅ MCP SSE app created successfully")
+                mcp_app = mcp.sse_app()
+                logger.info("Successfully created MCP SSE app")
                 
                 # Try to add health check route to existing MCP app
                 try:
                     from starlette.responses import JSONResponse
                     from starlette.routing import Route
                     
-                    # Create a simple health check function
+                    # Create a simple health check function with logging
                     async def health_check(request):
-                        return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
+                        logger.info("🏥 Health check endpoint accessed")
+                        return JSONResponse({"status": "healthy", "service": "mcp-odoo", "timestamp": datetime.now().isoformat()})
                     
                     # Add health route to the existing MCP app if possible
                     if hasattr(app, 'router') and hasattr(app.router, 'routes'):
                         health_route = Route("/health", health_check)
-                        app.router.routes.append(health_route)
-                        logger.info("✅ Health check route added")
+                        mcp_app.router.routes.append(health_route)
+                        logger.info("Added health check route to MCP app")
                     else:
-                        logger.info("ℹ️  Health route not available")
+                        logger.info("Cannot add health route, using MCP app as-is")
                         
                 except Exception as e:
-                    logger.warning(f"⚠️  Health endpoint setup failed: {e}")
+                    logger.warning(f"Could not add health endpoint ({e}), using MCP app as-is")
                 
-                logger.info(f"🚀 Starting server on {config.server.host}:{config.server.port}")
-                logger.info("📡 Endpoints: /sse, /messages, /health")
-                logger.info("🟢 Server ready - waiting for connections")
-                logger.info("=" * 60)
+                # Use the MCP app directly (with or without health endpoint)
+                app = mcp_app
+                logger.info("Using MCP SSE app directly")
+                
+                logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
+                logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
                 uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
                 
             except Exception as e:
