@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mcp-odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-odoo-server
+    ports:
+      # Puerto externo:interno - fácil de cambiar
+      - "8083:8083"
+    environment:
+      # Configuración del servidor
+      - HOST=0.0.0.0
+      - PORT=8083
+      - TRANSPORT=sse
+      
+      # Configuración de Odoo (usar variables de entorno o .env)
+      - ODOO_URL=${ODOO_URL:-https://dev.odoo.universidadisep.com}
+      - ODOO_DB=${ODOO_DB:-universidadisep}
+      - ODOO_USERNAME=${ODOO_USERNAME:-iallamadas@universidadisep.com}
+      - ODOO_PASSWORD=${ODOO_PASSWORD}
+      - ODOO_API_KEY=${ODOO_API_KEY:-}
+      
+      # Configuraciones adicionales
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - REQUEST_TIMEOUT=60
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+    volumes:
+      # Para desarrollo - montar el código fuente
+      - .:/app
+    restart: unless-stopped
+    
+    # Health check integrado
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Networking
+    networks:
+      - mcp-network
+    
+    # Labels para Traefik (si lo usamos después)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mcp-odoo.rule=Host(`dev2.odoo.universidadisep.com`)"
+      - "traefik.http.routers.mcp-odoo.tls=true"
+      - "traefik.http.services.mcp-odoo.loadbalancer.server.port=8083"
+      - "traefik.http.routers.mcp-odoo.entrypoints=websecure"
+
+networks:
+  mcp-network:
+    driver: bridge
+
+# Opcional: Volúmenes persistentes si necesitamos logs
+volumes:
+  mcp-logs:
+    driver: local
