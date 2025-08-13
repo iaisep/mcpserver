@@ -8,7 +8,7 @@ services:
     container_name: mcp-odoo-server
     ports:
       # Puerto externo:interno - fácil de cambiar
-      - "8083:8083"
+      - "8083:8000"
     environment:
       # Configuración del servidor
       - HOST=0.0.0.0
