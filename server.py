@@ -8,6 +8,7 @@ import logging
 import asyncio
 from typing import Literal, Optional
 import os
+from datetime import datetime
 
 from mcp.server.fastmcp import Context
 
@@ -18,6 +19,13 @@ from mcp_instance import mcp, AppContext
 from resources import partners
 from resources import accounting
 from resources import crm
+
+# Configure enhanced logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Configure logging
 logging.basicConfig(
@@ -138,24 +146,39 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
         logger.info(f"Starting MCP Odoo server with {transport} transport")
         logger.info(f"Connected to Odoo instance: {config.odoo.url}")
     
+    # Enhanced startup logging
+    logger.info("=" * 60)
+    logger.info("🚀 STARTING MCP-ODOO SERVER")
+    logger.info(f"📊 Server: {config.server.host}:{config.server.port}")
+    logger.info(f"🌐 Odoo: {config.odoo.url}")
+    logger.info(f"💾 Database: {config.odoo.database}")
+    
+    # Log available MCP tools
+    if hasattr(mcp, '_tools'):
+        logger.info(f"🔧 Available tools: {len(mcp._tools)}")
+        for tool_name in sorted(mcp._tools.keys()):
+            logger.info(f"   - {tool_name}")
+    
+    logger.info("=" * 60)
+    
     try:
         # Log initialization info
-        logger.info("Starting MCP server with Odoo integration")
-        logger.info(f"Using {transport} transport")
+        logger.info("🔄 Starting MCP server with Odoo integration")
+        logger.info(f"🚦 Transport: {transport}")
         
         # Run the server with the configured transport
         if transport == "sse":
             # For SSE transport, force uvicorn direct configuration to ensure proper host binding
-            logger.info(f"Starting SSE server on {config.server.host}:{config.server.port}")
+            logger.info(f"🔌 Starting SSE server on {config.server.host}:{config.server.port}")
             
             try:
                 # Force direct uvicorn configuration for reliable host binding in containers
-                logger.info("Using direct uvicorn configuration for reliable host binding")
+                logger.info("⚡ Using direct uvicorn for reliable host binding")
                 import uvicorn
                 
                 # Get ASGI app from FastMCP instance
-                mcp_app = mcp.sse_app()
-                logger.info("Successfully created MCP SSE app")
+                app = mcp.sse_app()
+                logger.info("✅ MCP SSE app created successfully")
                 
                 # Try to add health check route to existing MCP app
                 try:
@@ -167,22 +190,20 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                         return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
                     
                     # Add health route to the existing MCP app if possible
-                    if hasattr(mcp_app, 'router') and hasattr(mcp_app.router, 'routes'):
+                    if hasattr(app, 'router') and hasattr(app.router, 'routes'):
                         health_route = Route("/health", health_check)
-                        mcp_app.router.routes.append(health_route)
-                        logger.info("Added health check route to MCP app")
+                        app.router.routes.append(health_route)
+                        logger.info("✅ Health check route added")
                     else:
-                        logger.info("Cannot add health route, using MCP app as-is")
+                        logger.info("ℹ️  Health route not available")
                         
                 except Exception as e:
-                    logger.warning(f"Could not add health endpoint ({e}), using MCP app as-is")
+                    logger.warning(f"⚠️  Health endpoint setup failed: {e}")
                 
-                # Use the MCP app directly (with or without health endpoint)
-                app = mcp_app
-                logger.info("Using MCP SSE app directly")
-                
-                logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
-                logger.info("MCP SSE endpoints available at standard paths (/sse, /messages)")
+                logger.info(f"🚀 Starting server on {config.server.host}:{config.server.port}")
+                logger.info("📡 Endpoints: /sse, /messages, /health")
+                logger.info("🟢 Server ready - waiting for connections")
+                logger.info("=" * 60)
                 uvicorn.run(app, host=config.server.host, port=config.server.port, log_level="info")
                 
             except Exception as e:
