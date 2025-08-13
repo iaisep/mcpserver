@@ -17,6 +17,7 @@ from mcp_instance import mcp, AppContext
 # Import all resources to ensure they are registered
 from resources import partners
 from resources import accounting
+from resources import crm
 
 # Configure logging
 logging.basicConfig(
