@@ -96,6 +96,49 @@ async def odoo_version(ctx: Context) -> str:
         return f"Error: {str(e)}"
 
 
+def create_app(transport: str = "sse"):
+    """Create and return the FastAPI application for MCP server.
+    
+    Args:
+        transport: Transport type to use (should be 'sse' for web deployment)
+        
+    Returns:
+        FastAPI application instance
+    """
+    logger.info(f"Creating FastAPI app with transport: {transport}")
+    
+    if transport == "sse":
+        # Get the FastAPI app from the MCP instance
+        app = mcp.sse_app()
+        logger.info("✅ SSE app created successfully")
+        
+        # Try to add health check endpoint
+        try:
+            from starlette.responses import JSONResponse
+            from starlette.routing import Route
+            
+            async def health_check(request):
+                return JSONResponse({
+                    "status": "healthy", 
+                    "service": "mcp-odoo",
+                    "transport": transport,
+                    "tools_count": len(mcp._tools)
+                })
+            
+            # Add health route if possible
+            if hasattr(app, 'router') and hasattr(app.router, 'routes'):
+                health_route = Route("/health", health_check)
+                app.router.routes.append(health_route)
+                logger.info("✅ Health check endpoint added")
+            
+        except Exception as e:
+            logger.warning(f"Could not add health endpoint: {e}")
+        
+        return app
+    else:
+        raise ValueError(f"Unsupported transport for app creation: {transport}")
+
+
 def run_server(transport: Literal["stdio", "sse"] = "stdio",
                host: Optional[str] = None,
                port: Optional[int] = None):
