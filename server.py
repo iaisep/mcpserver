@@ -152,9 +152,30 @@ def run_server(transport: Literal["stdio", "sse"] = "stdio",
                 # Force direct uvicorn configuration for reliable host binding in containers
                 logger.info("Using direct uvicorn configuration for reliable host binding")
                 import uvicorn
+                from fastapi import FastAPI
+                from fastapi.responses import JSONResponse
+                
                 # Get ASGI app from FastMCP instance
-                app = mcp.sse_app()
+                mcp_app = mcp.sse_app()
+                
+                # Create a FastAPI wrapper to add health check endpoint
+                app = FastAPI()
+                
+                # Add health check endpoint for Traefik
+                @app.get("/")
+                async def root():
+                    return JSONResponse({"status": "ok", "service": "mcp-odoo"})
+                
+                @app.get("/health")
+                async def health_check():
+                    return JSONResponse({"status": "healthy", "service": "mcp-odoo"})
+                
+                # Mount MCP app at /mcp
+                app.mount("/mcp", mcp_app)
+                
                 logger.info(f"Starting uvicorn server on {config.server.host}:{config.server.port}")
+                logger.info("Health check available at: / and /health")
+                logger.info("MCP endpoints available at: /mcp/sse and /mcp/messages")
                 uvicorn.run(app, host=config.server.host, port=config.server.port)
             except ImportError:
                 logger.error("Uvicorn not available. Trying FastMCP fallback approaches")

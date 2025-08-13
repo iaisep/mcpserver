@@ -1,6 +1,9 @@
 # FastMCP
 fastmcp
 
+# Web framework for health checks
+fastapi
+
 # Config management
 python-dotenv
 pydantic
